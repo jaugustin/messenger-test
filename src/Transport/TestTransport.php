@@ -248,6 +248,11 @@ final class TestTransport implements TransportInterface, ListableReceiverInterfa
         }
 
         if (!$this->supportsDelayStamp()) {
+            if ($this->shouldTestSerialization()) {
+                // Simulate real transport by encoding/decoding the message
+                return [$this->serializer->decode($this->serializer->encode(\array_shift(self::$queue[$this->name])))];
+            }
+
             return [\array_shift(self::$queue[$this->name])];
         }
 
@@ -259,6 +264,11 @@ final class TestTransport implements TransportInterface, ListableReceiverInterfa
             }
 
             unset(self::$queue[$this->name][$i]);
+
+            if ($this->shouldTestSerialization()) {
+                // Simulate real transport by encoding/decoding the message
+                return [$this->serializer->decode($this->serializer->encode($envelope))];
+            }
 
             return [$envelope];
         }

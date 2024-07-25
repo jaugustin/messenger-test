@@ -18,6 +18,8 @@ services:
         tags: [messenger.message_handler]
     Zenstruck\Messenger\Test\Tests\Fixture\Messenger\MessageGHandler:
         tags: [messenger.message_handler]
+    Zenstruck\Messenger\Test\Tests\Fixture\Messenger\MessageHHandler:
+        tags: [messenger.message_handler]
 
     message_bus:
         alias: Symfony\Component\Messenger\MessageBusInterface

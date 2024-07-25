@@ -17,6 +17,7 @@ use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Event\WorkerMessageHandledEvent;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Component\Messenger\Stamp\SerializerStamp;
@@ -34,6 +35,7 @@ use Zenstruck\Messenger\Test\Tests\Fixture\Messenger\MessageD;
 use Zenstruck\Messenger\Test\Tests\Fixture\Messenger\MessageE;
 use Zenstruck\Messenger\Test\Tests\Fixture\Messenger\MessageF;
 use Zenstruck\Messenger\Test\Tests\Fixture\Messenger\MessageG;
+use Zenstruck\Messenger\Test\Tests\Fixture\Messenger\MessageH;
 use Zenstruck\Messenger\Test\Tests\Fixture\NoBundleKernel;
 use Zenstruck\Messenger\Test\Transport\TestTransport;
 
@@ -378,7 +380,7 @@ final class InteractsWithMessengerTest extends WebTestCase
         self::bootKernel(['environment' => 'multi_transport']);
 
         $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('Multiple transports are registered (async1, async2, async3, async4), you must specify a name.');
+        $this->expectExceptionMessage('Multiple transports are registered (async1, async2, async3, async4, async5), you must specify a name.');
 
         $this->transport();
     }
@@ -849,7 +851,7 @@ final class InteractsWithMessengerTest extends WebTestCase
         $this->transport()->process();
 
         $this->assertCount(1, $messages);
-        $this->assertSame($message, $messages[0]);
+        $this->assertEquals($message, $messages[0]);
     }
 
     /**
@@ -865,6 +867,26 @@ final class InteractsWithMessengerTest extends WebTestCase
         ;
 
         Assert::run(fn() => $this->transport('async2')->send(new Envelope(new MessageG())));
+    }
+
+    /**
+     * @test
+     */
+    public function serialization_problem_in_handler_assertions(): void
+    {
+        self::bootKernel(['environment' => 'multi_transport']);
+
+        // "MessageH" is valid but calling getName is invalid after deserialization, transport async5 should catch this.
+        Assert::that(function ()  {
+            $this->transport('async5')->send(new Envelope(new MessageH('foo')));
+        })
+            ->throws(HandlerFailedException::class)
+        ;
+
+        Assert::run(function () {
+            // no serialization test for async2, no error occurred
+            $this->transport('async2')->send(new Envelope(new MessageH('foo')));
+        });
     }
 
     /**
